@@ -216,14 +216,11 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center rounded-lg gap-3 p-4 cursor-pointer hover:bg-gray-800/50">
-                <div
-                  className="px-2.5 py-1 rounded-full flex items-center justify-center text-white"
-                  style={{
-                    backgroundColor: user?.user_metadata?.color || "#4F46E5",
-                  }}
-                >
-                  {user?.user_metadata?.full_name?.charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name}&background=4F46E5&color=fff`}
+                  alt={user?.user_metadata?.full_name}
+                  className="w-8 h-8 rounded-full"
+                />
                 <div className="flex-1">
                   <div className="text-sm text-gray-400 font-medium">
                     {user?.user_metadata?.full_name}
