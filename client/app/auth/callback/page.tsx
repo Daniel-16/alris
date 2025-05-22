@@ -4,15 +4,16 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../utils/supabase";
 import { Suspense } from "react";
+import { useAuth } from "../../utils/AuthContext";
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setUser } = useAuth();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const event = searchParams.get("event");
         const {
           data: { session },
           error,
@@ -25,6 +26,10 @@ function AuthCallbackContent() {
         }
 
         if (session) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          setUser(user ?? null);
           router.refresh();
           router.push("/chat");
         } else {
@@ -37,7 +42,7 @@ function AuthCallbackContent() {
     };
 
     handleAuthCallback();
-  }, [router, searchParams]);
+  }, [router, searchParams, setUser]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">

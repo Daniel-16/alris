@@ -58,24 +58,30 @@ class TwitterService:
             logger.error(f"Error initializing Twitter service: {str(e)}")
             self._client = None
     
-    async def post_tweet(self, text: str) -> Dict[str, Any]:
-        """Post a new tweet with the given text"""
-        if not self._client:
-            return {
-                "status": "error",
-                "message": "Twitter client not initialized. Check if API credentials are properly set in environment variables."
-            }
-        
+    async def post_tweet(self, text: str, access_token: str = None, access_token_secret: str = None) -> Dict[str, Any]:
+        """Post a new tweet with the given text, using per-user tokens if provided"""
         try:
             logger.info(f"Posting tweet: {text}")
-            
-            if not self._has_write_permissions:
-                logger.warning("Attempting to post without confirmed write permissions")
-                
-            response = self._client.create_tweet(text=text)
+            if access_token and access_token_secret:
+                api_key = os.getenv("TWITTER_API_KEY")
+                api_secret = os.getenv("TWITTER_API_SECRET")
+                client = tweepy.Client(
+                    consumer_key=api_key,
+                    consumer_secret=api_secret,
+                    access_token=access_token,
+                    access_token_secret=access_token_secret,
+                )
+            else:
+                if not self._client:
+                    return {
+                        "status": "error",
+                        "message": "Twitter client not initialized. Check if API credentials are properly set in environment variables."
+                    }
+                client = self._client
+
+            response = client.create_tweet(text=text)
             tweet_id = response.data["id"]
             tweet_url = f"https://twitter.com/i/web/status/{tweet_id}"
-            
             return {
                 "status": "success",
                 "message": "Tweet posted successfully",
@@ -85,29 +91,10 @@ class TwitterService:
         except tweepy.TweepyException as e:
             error_msg = str(e)
             logger.error(f"Error posting tweet: {error_msg}")
-            
-            if "403 Forbidden" in error_msg and "oauth1 app permissions" in error_msg:
-                return {
-                    "status": "error",
-                    "message": f"Failed to post tweet: {error_msg}",
-                    "resolution": (
-                        "Your Twitter app doesn't have write permissions. "
-                        "Please go to the Twitter Developer Portal (https://developer.twitter.com/en/portal/dashboard), "
-                        "select your app, go to 'App permissions' and change from 'Read' to 'Read and Write'. "
-                        "Then regenerate your access token and token secret."
-                    )
-                }
-            elif "401 Unauthorized" in error_msg:
-                return {
-                    "status": "error",
-                    "message": f"Failed to post tweet: {error_msg}",
-                    "resolution": "Check if your API keys and tokens are correct and not expired."
-                }
-            else:
-                return {
-                    "status": "error",
-                    "message": f"Failed to post tweet: {error_msg}"
-                }
+            return {
+                "status": "error",
+                "message": f"Failed to post tweet: {error_msg}"
+            }
         except Exception as e:
             logger.error(f"Error posting tweet: {str(e)}")
             return {

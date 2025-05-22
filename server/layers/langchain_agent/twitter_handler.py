@@ -21,7 +21,7 @@ def is_twitter_post_command(command: str) -> bool:
     
     return False
 
-async def handle_twitter_intent(command: str, mcp_client) -> Dict[str, Any]:
+async def handle_twitter_intent(command: str, mcp_client, user_tokens: dict = None) -> Dict[str, Any]:
     """Handle Twitter-related commands by generating and posting tweets"""
     if not mcp_client:
         return {
@@ -57,7 +57,12 @@ async def handle_twitter_intent(command: str, mcp_client) -> Dict[str, Any]:
         
         logger.info(f"Final tweet content: {tweet_text}")
         
-        result = await mcp_client.call_tool("post_tweet", {"params": {"text": tweet_text}})
+        tool_params = {"params": {"text": tweet_text}}
+        if user_tokens:
+            if "access_token" in user_tokens and "access_token_secret" in user_tokens:
+                tool_params["params"]["access_token"] = user_tokens["access_token"]
+                tool_params["params"]["access_token_secret"] = user_tokens["access_token_secret"]
+        result = await mcp_client.call_tool("post_tweet", tool_params)
         
         if hasattr(result, "content") and result.content:
             content_text = result.content[0].text if result.content[0].text else ""

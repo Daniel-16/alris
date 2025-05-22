@@ -26,11 +26,11 @@ class AgentOrchestrator:
         """Handle calendar-related commands by parsing time information and calling calendar tools."""
         return await handle_calendar_intent(command, self.mcp_client)
     
-    async def _handle_twitter_intent(self, command: str) -> Dict[str, Any]:
+    async def _handle_twitter_intent(self, command: str, user_tokens: dict = None) -> Dict[str, Any]:
         """Handle Twitter-related commands by generating and posting tweets."""
-        return await handle_twitter_intent(command, self.mcp_client)
+        return await handle_twitter_intent(command, self.mcp_client, user_tokens)
     
-    async def process_command(self, command: str, thread_id: str = None) -> Dict[str, Any]:
+    async def process_command(self, command: str, thread_id: str = None, user_tokens: dict = None) -> Dict[str, Any]:
         try:
             logger.info(f"Processing command: {command}")
             
@@ -58,7 +58,7 @@ class AgentOrchestrator:
             
             if is_twitter_post_command(command):
                 logger.info(f"Detected Twitter post command: {command}")
-                result = await self._handle_twitter_intent(command)
+                result = await self._handle_twitter_intent(command, user_tokens)
                 
                 response = {
                     "intent": "twitter",
@@ -79,7 +79,7 @@ class AgentOrchestrator:
             elif intent == "calendar":
                 result = await self._handle_calendar_intent(command)
             elif intent == "twitter":
-                result = await self._handle_twitter_intent(command)
+                result = await self._handle_twitter_intent(command, user_tokens)
             else:
                 logger.info(f"Using browser agent for general command: {command}")
                 result = await self.browser_agent.execute(command, thread_id=thread_id)

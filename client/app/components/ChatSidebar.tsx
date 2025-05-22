@@ -2,13 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "../utils/AuthContext";
-import {
-  FaYoutube,
-  FaEnvelope,
-  FaCalendar,
-  FaTwitter,
-  FaGoogleDrive,
-} from "react-icons/fa";
+import { FaYoutube, FaGoogleDrive } from "react-icons/fa";
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +31,11 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, linkTwitter, isTwitterConnected } = useAuth();
+  console.log("[DEBUG] Current user:", user);
+  if (user?.identities) {
+    console.log("[DEBUG] User identities:", user.identities);
+  }
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
@@ -166,9 +164,14 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
 
               <SidebarMenuItem className="mb-2">
                 <SidebarMenuButton
-                  onClick={() => {
-                    console.log("Attempting to connect to Twitter...");
-                    window.location.href = "/api/auth/twitter/login";
+                  onClick={async () => {
+                    try {
+                      await linkTwitter();
+                    } catch (e) {
+                      alert(
+                        "Failed to connect Twitter: " + (e as Error).message
+                      );
+                    }
                   }}
                 >
                   <svg
@@ -184,9 +187,15 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
                     <path d="M 5.9199219 6 L 20.582031 27.375 L 6.2304688 44 L 9.4101562 44 L 21.986328 29.421875 L 31.986328 44 L 44 44 L 28.681641 21.669922 L 42.199219 6 L 39.029297 6 L 27.275391 19.617188 L 17.933594 6 L 5.9199219 6 z M 9.7167969 8 L 16.880859 8 L 40.203125 42 L 33.039062 42 L 9.7167969 8 z"></path>
                   </svg>
                   <span className="text-gray-400">X (Twitter)</span>
-                  <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-600 text-white cursor-pointer">
-                    Connect
-                  </span>
+                  {isTwitterConnected ? (
+                    <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-green-500 text-white cursor-pointer">
+                      Connected
+                    </span>
+                  ) : (
+                    <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-600 text-white cursor-pointer">
+                      Connect
+                    </span>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
 

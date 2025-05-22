@@ -262,9 +262,11 @@ class MCPConnector:
         
         @self.mcp.tool()
         async def post_tweet(params: Dict[str, Any]) -> Dict[str, Any]:
-            """Post a tweet to Twitter with the specified text"""
+            """Post a tweet to Twitter with the specified text and optional user tokens"""
             try:
                 text = None
+                access_token = None
+                access_token_secret = None
                 
                 if "text" in params:
                     text = params["text"]
@@ -274,15 +276,17 @@ class MCPConnector:
                     nested_params = next(iter(params.values()))
                     if "text" in nested_params:
                         text = nested_params["text"]
-                
+                if "access_token" in params:
+                    access_token = params["access_token"]
+                if "access_token_secret" in params:
+                    access_token_secret = params["access_token_secret"]
                 if not text:
                     return {
                         "status": "error",
                         "message": "Tweet text is required"
                     }
-                
                 logger.info(f"Calling Twitter service to post tweet: {text}")
-                return await self.twitter_service.post_tweet(text)
+                return await self.twitter_service.post_tweet(text, access_token, access_token_secret)
             except Exception as e:
                 logger.error(f"Error in post_tweet tool: {str(e)}")
                 return {

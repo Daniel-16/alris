@@ -12,6 +12,9 @@ type AuthContextType = {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  linkTwitter: () => Promise<void>;
+  isTwitterConnected: boolean;
+  setUser: (user: User | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,9 +108,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  const linkTwitter = async () => {
+    const { error } = await supabase.auth.linkIdentity({
+      provider: "twitter",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) throw error;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    setUser(session?.user ?? null);
+  };
+
+  const isTwitterConnected = !!user?.identities?.some(
+    (identity: any) => identity.provider === "twitter"
+  );
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signIn, signUp, signOut, signInWithGoogle }}
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        signInWithGoogle,
+        linkTwitter,
+        isTwitterConnected,
+        setUser,
+      }}
     >
       {children}
     </AuthContext.Provider>
