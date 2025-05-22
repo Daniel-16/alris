@@ -6,7 +6,6 @@ import { FaYoutube, FaGoogleDrive } from "react-icons/fa";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
   SidebarGroup,
@@ -21,8 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  //   DropdownMenuLabel,
-  //   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -47,9 +44,6 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
       <Sidebar className="">
         <SidebarContent>
           <SidebarGroup>
-            {/* <SidebarGroupLabel className="">              
-              <PanelLeft className="text-gray-200 w-6 h-6" />
-            </SidebarGroupLabel> */}
             <SidebarGroupLabel className="text-gray-400 mt-2 px-3 font-bold mb-2 text-xl">
               Tools
             </SidebarGroupLabel>
