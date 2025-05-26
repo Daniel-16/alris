@@ -11,10 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uuid
 from fastapi.responses import JSONResponse
-
 from layers.langchain_agent import AgentOrchestrator
 from layers.mcp_connector import MCPConnector, AlrisMCPClient
-from layers.external_services import BrowserService
+from supabase import create_client, Client
+import os
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -31,6 +31,10 @@ mcp_thread = None
 mcp_connector = None
 shutdown_requested = False
 shutdown_lock = threading.Lock()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 def handle_sigterm(*args):
     global shutdown_requested
@@ -56,13 +60,11 @@ async def lifespan(app: FastAPI):
             mcp_thread = threading.Thread(target=mcp_connector.run, daemon=True)
             mcp_thread.start()
             logger.info("MCP connector server thread started")
-            # Give the MCP server a moment to initialize
             await asyncio.sleep(1)
         
         if mcp_client is None:
             mcp_client = AlrisMCPClient()
             
-            # Try to connect with retries
             max_retries = 3
             retry_count = 0
             connected = False
@@ -194,6 +196,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 if isinstance(response, dict) and "intent" in response:
                     intent_type = response["intent"]
                     ws_response["metadata"]["intent"] = intent_type
+                    
+                    if "resolution" in response:
+                        ws_response["metadata"]["resolution"] = response["resolution"]
+                        logger.info(f"Including resolution instructions in WebSocket response")
                 
                 logger.debug(f"Sending WebSocket response: {ws_response}")
                 
@@ -249,8 +255,18 @@ async def health_check():
                 "endpoint": "/ws"
             }
         },
-        "version": "2.0.0"
+        "version": "0.2.0"
     }
+
+async def get_twitter_tokens_from_supabase(user_id: str):
+    response = supabase.table("identities").select("provider, access_token, access_token_secret").eq("user_id", user_id).eq("provider", "twitter").execute()
+    if response.data and len(response.data) > 0:
+        identity = response.data[0]
+        return {
+            "access_token": identity.get("access_token"),
+            "access_token_secret": identity.get("access_token_secret")
+        }
+    return None
 
 @app.post("/command")
 async def command_endpoint(request: Request):
@@ -263,8 +279,26 @@ async def command_endpoint(request: Request):
                 content={"type": "error", "message": "Command is required"}
             )
 
+        jwt = None
+        auth_header = request.headers.get("authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            jwt = auth_header[7:]
+        elif "access_token" in request.cookies:
+            jwt = request.cookies["access_token"]
+
+        user_tokens = None
+        if jwt:
+            import jwt as pyjwt
+            try:
+                decoded = pyjwt.decode(jwt, options={"verify_signature": False})
+                user_id = decoded.get("sub")
+                if user_id:
+                    user_tokens = await get_twitter_tokens_from_supabase(user_id)
+            except Exception as e:
+                logger.error(f"Failed to decode Supabase JWT: {e}")
+
         thread_id = str(uuid.uuid4())
-        response = await app.state.agent_orchestrator.process_command(command, thread_id=thread_id)
+        response = await app.state.agent_orchestrator.process_command(command, thread_id=thread_id, user_tokens=user_tokens)
 
         message_content = ""
         video_urls = None

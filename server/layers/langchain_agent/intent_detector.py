@@ -19,6 +19,12 @@ class IntentDetector:
             ],
             "calendar": [
                 r"schedule|meeting|appointment|calendar|event|remind"
+            ],
+            "twitter": [
+                r"(post|write|create|make|compose|craft|send|tweet|publish).*tweet",
+                r"tweet (about|on)",
+                r"(post|share|put).*(on|to) twitter",
+                r"(create|make|compose) .* twitter (post|update)"
             ]
         }
         

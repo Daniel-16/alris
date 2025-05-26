@@ -2,17 +2,10 @@
 
 import * as React from "react";
 import { useAuth } from "../utils/AuthContext";
-import {
-  FaYoutube,
-  FaEnvelope,
-  FaCalendar,
-  FaTwitter,
-  FaGoogleDrive,
-} from "react-icons/fa";
+import { FaYoutube, FaGoogleDrive } from "react-icons/fa";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
   SidebarGroup,
@@ -22,13 +15,11 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ChevronsUpDown, Menu, PanelLeft } from "lucide-react";
+import { ChevronsUpDown, Menu } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  //   DropdownMenuLabel,
-  //   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -37,7 +28,11 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, linkTwitter, isTwitterConnected } = useAuth();
+  console.log("[DEBUG] Current user:", user);
+  if (user?.identities) {
+    console.log("[DEBUG] User identities:", user.identities);
+  }
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
@@ -49,9 +44,6 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
       <Sidebar className="">
         <SidebarContent>
           <SidebarGroup>
-            {/* <SidebarGroupLabel className="">              
-              <PanelLeft className="text-gray-200 w-6 h-6" />
-            </SidebarGroupLabel> */}
             <SidebarGroupLabel className="text-gray-400 mt-2 px-3 font-bold mb-2 text-xl">
               Tools
             </SidebarGroupLabel>
@@ -164,26 +156,44 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem className="mb-2">
-                <SidebarMenuButton>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    x="0px"
-                    y="0px"
-                    width="100"
-                    height="100"
-                    viewBox="0 0 50 50"
-                    fill="white"
+              {process.env.NEXT_PUBLIC_ENV === "development" && (
+                <SidebarMenuItem className="mb-2">
+                  <SidebarMenuButton
+                    onClick={async () => {
+                      try {
+                        await linkTwitter();
+                      } catch (e) {
+                        alert(
+                          "Failed to connect Twitter: " + (e as Error).message
+                        );
+                      }
+                    }}
                   >
-                    <path d="M 5.9199219 6 L 20.582031 27.375 L 6.2304688 44 L 9.4101562 44 L 21.986328 29.421875 L 31.986328 44 L 44 44 L 28.681641 21.669922 L 42.199219 6 L 39.029297 6 L 27.275391 19.617188 L 17.933594 6 L 5.9199219 6 z M 9.7167969 8 L 16.880859 8 L 40.203125 42 L 33.039062 42 L 9.7167969 8 z"></path>
-                  </svg>
-                  {/* <FaTwitter className="w-4 h-4 text-gray-400" /> */}
-                  <span className="text-gray-400">X</span>
-                  <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
-                    Inactive
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 50 50"
+                      fill="currentColor"
+                      className="text-gray-400"
+                    >
+                      <path d="M 5.9199219 6 L 20.582031 27.375 L 6.2304688 44 L 9.4101562 44 L 21.986328 29.421875 L 31.986328 44 L 44 44 L 28.681641 21.669922 L 42.199219 6 L 39.029297 6 L 27.275391 19.617188 L 17.933594 6 L 5.9199219 6 z M 9.7167969 8 L 16.880859 8 L 40.203125 42 L 33.039062 42 L 9.7167969 8 z"></path>
+                    </svg>
+                    <span className="text-gray-400">X (Twitter)</span>
+                    {isTwitterConnected ? (
+                      <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-green-500 text-white cursor-pointer">
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-600 text-white cursor-pointer">
+                        Connect
+                      </span>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               <SidebarMenuItem className="mb-2">
                 <SidebarMenuButton>
@@ -202,14 +212,11 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center rounded-lg gap-3 p-4 cursor-pointer hover:bg-gray-800/50">
-                <div
-                  className="px-2.5 py-1 rounded-full flex items-center justify-center text-white"
-                  style={{
-                    backgroundColor: user?.user_metadata?.color || "#4F46E5",
-                  }}
-                >
-                  {user?.user_metadata?.full_name?.charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name}&background=4F46E5&color=fff`}
+                  alt={user?.user_metadata?.full_name}
+                  className="w-8 h-8 rounded-full"
+                />
                 <div className="flex-1">
                   <div className="text-sm text-gray-400 font-medium">
                     {user?.user_metadata?.full_name}

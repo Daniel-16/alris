@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
-from ..external_services import BrowserService, EmailService, CalendarService, CalendarEventParams
+from ..external_services import BrowserService, EmailService, CalendarService, CalendarEventParams, TwitterService
 
 logger = logging.getLogger("mcp_connector.server")
 
@@ -33,6 +33,16 @@ class CalendarEventParams(BaseModel):
     end_time: str
     description: Optional[str] = None
 
+class TwitterParams(BaseModel):
+    text: str
+    
+class TwitterReplyParams(BaseModel):
+    tweet_id: str
+    text: str
+    
+class TwitterGetParams(BaseModel):
+    tweet_id: str
+
 class MCPConnector:
     """MCP Connector that bridges agents and external services"""
     
@@ -42,6 +52,7 @@ class MCPConnector:
         
         self.browser_service = BrowserService()
         self.email_service = EmailService()
+        self.twitter_service = TwitterService()
         
         self._register_tools()
         
@@ -247,6 +258,95 @@ class MCPConnector:
                 return {
                     "status": "error",
                     "message": f"Error processing calendar event: {str(e)}"
+                }
+        
+        @self.mcp.tool()
+        async def post_tweet(params: Dict[str, Any]) -> Dict[str, Any]:
+            """Post a tweet to Twitter with the specified text and optional user tokens"""
+            try:
+                text = None
+                access_token = None
+                access_token_secret = None
+                
+                if "text" in params:
+                    text = params["text"]
+                elif "params" in params and isinstance(params["params"], dict) and "text" in params["params"]:
+                    text = params["params"]["text"]
+                elif all(k != "params" for k in params.keys()) and len(params) == 1 and isinstance(next(iter(params.values())), dict):
+                    nested_params = next(iter(params.values()))
+                    if "text" in nested_params:
+                        text = nested_params["text"]
+                if "access_token" in params:
+                    access_token = params["access_token"]
+                if "access_token_secret" in params:
+                    access_token_secret = params["access_token_secret"]
+                if not text:
+                    return {
+                        "status": "error",
+                        "message": "Tweet text is required"
+                    }
+                logger.info(f"Calling Twitter service to post tweet: {text}")
+                return await self.twitter_service.post_tweet(text, access_token, access_token_secret)
+            except Exception as e:
+                logger.error(f"Error in post_tweet tool: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": f"Error in post_tweet tool: {str(e)}"
+                }
+        
+        @self.mcp.tool()
+        async def reply_to_tweet(params: Dict[str, Any]) -> Dict[str, Any]:
+            """Reply to an existing tweet"""
+            try:
+                tweet_id = None
+                text = None
+                
+                if all(k in params for k in ["tweet_id", "text"]):
+                    tweet_id = params["tweet_id"]
+                    text = params["text"]
+                elif "params" in params and isinstance(params["params"], dict):
+                    p = params["params"]
+                    if all(k in p for k in ["tweet_id", "text"]):
+                        tweet_id = p["tweet_id"]
+                        text = p["text"]
+                
+                if not tweet_id or not text:
+                    return {
+                        "status": "error",
+                        "message": "Tweet ID and reply text are required"
+                    }
+                
+                return await self.twitter_service.reply_to_tweet(tweet_id, text)
+            except Exception as e:
+                logger.error(f"Error in reply_to_tweet tool: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": f"Error in reply_to_tweet tool: {str(e)}"
+                }
+        
+        @self.mcp.tool()
+        async def get_tweet(params: Dict[str, Any]) -> Dict[str, Any]:
+            """Get a tweet by its ID"""
+            try:
+                tweet_id = None
+                
+                if "tweet_id" in params:
+                    tweet_id = params["tweet_id"]
+                elif "params" in params and isinstance(params["params"], dict) and "tweet_id" in params["params"]:
+                    tweet_id = params["params"]["tweet_id"]
+                
+                if not tweet_id:
+                    return {
+                        "status": "error",
+                        "message": "Tweet ID is required"
+                    }
+                
+                return await self.twitter_service.get_tweet(tweet_id)
+            except Exception as e:
+                logger.error(f"Error in get_tweet tool: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": f"Error in get_tweet tool: {str(e)}"
                 }
         
         logger.info("MCP tools registered")

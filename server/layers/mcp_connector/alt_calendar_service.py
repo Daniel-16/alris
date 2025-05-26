@@ -23,9 +23,7 @@ class SimpleCalendarService:
                 return {
                     "status": "error",
                     "message": "Calendar service misconfigured: missing API URL"
-                }
-            
-            # Clean up the URL - remove any trailing % character that might have been added accidentally
+                }            
             if apps_script_url.endswith('%'):
                 apps_script_url = apps_script_url[:-1]
                 logger.info(f"Fixed Google Apps Script URL by removing trailing % character")

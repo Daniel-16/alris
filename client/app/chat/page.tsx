@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BackgroundBeams } from "../components/BackgroundBeams";
+// import { BackgroundBeams } from "../components/BackgroundBeams";
 import { FaPaperPlane, FaMicrophone } from "react-icons/fa";
 import { IoInformationCircle } from "react-icons/io5";
-import NotLaunched from "../components/NotLaunched";
+// import NotLaunched from "../components/NotLaunched";
 import ChatNavbar from "../components/ChatNavbar";
 import ChatSidebar from "../components/ChatSidebar";
 import { useAuth } from "../utils/AuthContext";
@@ -50,14 +50,14 @@ export default function ChatPage() {
 
         if (lastResetTime) {
           const timeDiff = Date.now() - parseInt(lastResetTime);
-          if (timeDiff >= 24 * 60 * 60 * 1000) {
-            setRemainingMessages(3);
-            await updateMessageLimits(3);
+          if (timeDiff >= 5 * 60 * 60 * 1000) {
+            setRemainingMessages(5);
+            await updateMessageLimits(5);
           } else if (storedMessages) {
             setRemainingMessages(parseInt(storedMessages));
           }
         } else {
-          await updateMessageLimits(3);
+          await updateMessageLimits(5);
         }
       } catch (err) {
         console.error("Error initializing message limits:", err);

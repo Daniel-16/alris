@@ -123,7 +123,6 @@ if __name__ == "__main__":
         
         self.connected = False
         
-        # session = self.session
         self.session = None
         
         try:
