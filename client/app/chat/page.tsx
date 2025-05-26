@@ -172,7 +172,7 @@ export default function ChatPage() {
 
       const data = await response.json();
       if (data.type === "response") {
-        const mainMessage = data.data.split("\n")[0];
+        const mainMessage = data.data;
         const newAssistantMessage: Message = {
           type: "assistant",
           content: mainMessage,
@@ -261,7 +261,7 @@ export default function ChatPage() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Give Alris a task"
+                    placeholder="Ask Alris to 'Schedule a reminder' or 'Search for a video'"
                     className="w-full px-12 py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-4xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                   />
                   <button
@@ -278,10 +278,10 @@ export default function ChatPage() {
             <>
               <div
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto px-4 mt-16 custom-scrollbar"
+                className="flex-1 overflow-y-auto px-4 mt-16"
                 style={{
                   overflowY: "auto",
-                  overscrollBehaviorY: "inherit",
+                  overscrollBehaviorY: "auto",
                   // height: "calc(100vh - 180px)",
                 }}
               >
@@ -304,7 +304,7 @@ export default function ChatPage() {
                       }`}
                     >
                       {message.type === "assistant" ? (
-                        <div className="prose prose-invert max-w-none text-md break-words text-gray-200">
+                        <div className="prose prose-invert max-w-none text-md break-words text-gray-200 leading-relaxed">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
@@ -409,7 +409,7 @@ export default function ChatPage() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Give Alris a task"
+                    placeholder="Ask Alris to 'Schedule a reminder' or 'Search for a video'"
                     className="w-full py-3 px-12 md:py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-4xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                   />
                   <button
