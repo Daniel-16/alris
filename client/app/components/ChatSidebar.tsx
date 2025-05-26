@@ -29,9 +29,11 @@ interface ChatSidebarProps {
 
 const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
   const { signOut, user, linkTwitter, isTwitterConnected } = useAuth();
-  console.log("[DEBUG] Current user:", user);
-  if (user?.identities) {
-    console.log("[DEBUG] User identities:", user.identities);
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[DEBUG] Current user:", user);
+    if (user?.identities) {
+      console.log("[DEBUG] User identities:", user.identities);
+    }
   }
 
   return (
@@ -213,9 +215,16 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
             <DropdownMenuTrigger asChild>
               <div className="flex items-center rounded-lg gap-3 p-4 cursor-pointer hover:bg-gray-800/50">
                 <img
-                  src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name}&background=4F46E5&color=fff`}
+                  src={
+                    user?.identities?.[0]?.identity_data?.picture ||
+                    `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name}&background=4F46E5&color=fff`
+                  }
                   alt={user?.user_metadata?.full_name}
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null; // Prevent infinite loop
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name}&background=4F46E5&color=fff`;
+                  }}
                 />
                 <div className="flex-1">
                   <div className="text-sm text-gray-400 font-medium">

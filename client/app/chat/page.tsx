@@ -12,6 +12,10 @@ import { useAuth } from "../utils/AuthContext";
 import VideoGrid from "@/components/VideoGrid";
 import { getMessageLimits, updateMessageLimits } from "../actions/cookies";
 import ProcessingMessage from "@/components/ProcessingMessage";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 interface Message {
   type: "user" | "assistant";
@@ -37,7 +41,7 @@ export default function ChatPage() {
   const [showLimitTooltip, setShowLimitTooltip] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [remainingMessages, setRemainingMessages] = useState(3);
+  const [remainingMessages, setRemainingMessages] = useState(5);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const [isVideoCommand, setIsVideoCommand] = useState(false);
@@ -95,6 +99,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
+    console.log(messages);
   }, [messages]);
 
   const errorAlert = error && (
@@ -276,11 +281,11 @@ export default function ChatPage() {
                 className="flex-1 overflow-y-auto px-4 mt-16 custom-scrollbar"
                 style={{
                   overflowY: "auto",
-                  overscrollBehaviorY: "contain",
-                  height: "calc(100vh - 180px)",
+                  overscrollBehaviorY: "inherit",
+                  // height: "calc(100vh - 180px)",
                 }}
               >
-                {errorAlert}
+                {/* {errorAlert} */}
                 {messages.map((message, index) => (
                   <motion.div
                     key={index}
@@ -292,13 +297,47 @@ export default function ChatPage() {
                     } mb-4 w-full`}
                   >
                     <div
-                      className={`max-w-[95%] md:max-w-[80%] rounded-lg px-3 py-2 md:px-4 md:py-4 ${
-                        message.type === "user" ? "bg-blue-500" : "bg-[#1C1C27]"
+                      className={`max-w-[95%] md:max-w-[80%] ${
+                        message.type === "user"
+                          ? "bg-[#1C1C27] text-md text-white rounded-[30px] px-3 py-2 md:px-4 md:py-4"
+                          : "text-white"
                       }`}
                     >
-                      <p className="text-md md:text-sm text-white break-words">
-                        {message.content}
-                      </p>
+                      {message.type === "assistant" ? (
+                        <div className="prose prose-invert max-w-none text-md break-words text-gray-200">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({ node, className, children, ...props }) {
+                                const match = /language-(\w+)/.exec(
+                                  className || ""
+                                );
+                                return !(props as any).inline && match ? (
+                                  <SyntaxHighlighter
+                                    style={oneDark as any}
+                                    language={match[1]}
+                                    PreTag="div"
+                                    customStyle={{
+                                      borderRadius: "0.5rem",
+                                      padding: "1em",
+                                    }}
+                                  >
+                                    {String(children).replace(/\n$/, "")}
+                                  </SyntaxHighlighter>
+                                ) : (
+                                  <code className={className}>{children}</code>
+                                );
+                              },
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-md md:text-sm text-white break-words">
+                          {message.content}
+                        </p>
+                      )}
                     </div>
                     {message.type === "assistant" && message.video_urls && (
                       <VideoGrid videoUrls={message.video_urls} />
