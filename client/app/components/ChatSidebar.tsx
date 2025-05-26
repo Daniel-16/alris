@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { ChevronsUpDown, Menu, PanelLeft } from "lucide-react";
+import { ChevronsUpDown, Menu } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,42 +156,44 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem className="mb-2">
-                <SidebarMenuButton
-                  onClick={async () => {
-                    try {
-                      await linkTwitter();
-                    } catch (e) {
-                      alert(
-                        "Failed to connect Twitter: " + (e as Error).message
-                      );
-                    }
-                  }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    x="0px"
-                    y="0px"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 50 50"
-                    fill="currentColor"
-                    className="text-gray-400"
+              {process.env.NEXT_PUBLIC_ENV === "development" && (
+                <SidebarMenuItem className="mb-2">
+                  <SidebarMenuButton
+                    onClick={async () => {
+                      try {
+                        await linkTwitter();
+                      } catch (e) {
+                        alert(
+                          "Failed to connect Twitter: " + (e as Error).message
+                        );
+                      }
+                    }}
                   >
-                    <path d="M 5.9199219 6 L 20.582031 27.375 L 6.2304688 44 L 9.4101562 44 L 21.986328 29.421875 L 31.986328 44 L 44 44 L 28.681641 21.669922 L 42.199219 6 L 39.029297 6 L 27.275391 19.617188 L 17.933594 6 L 5.9199219 6 z M 9.7167969 8 L 16.880859 8 L 40.203125 42 L 33.039062 42 L 9.7167969 8 z"></path>
-                  </svg>
-                  <span className="text-gray-400">X (Twitter)</span>
-                  {isTwitterConnected ? (
-                    <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-green-500 text-white cursor-pointer">
-                      Connected
-                    </span>
-                  ) : (
-                    <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-600 text-white cursor-pointer">
-                      Connect
-                    </span>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 50 50"
+                      fill="currentColor"
+                      className="text-gray-400"
+                    >
+                      <path d="M 5.9199219 6 L 20.582031 27.375 L 6.2304688 44 L 9.4101562 44 L 21.986328 29.421875 L 31.986328 44 L 44 44 L 28.681641 21.669922 L 42.199219 6 L 39.029297 6 L 27.275391 19.617188 L 17.933594 6 L 5.9199219 6 z M 9.7167969 8 L 16.880859 8 L 40.203125 42 L 33.039062 42 L 9.7167969 8 z"></path>
+                    </svg>
+                    <span className="text-gray-400">X (Twitter)</span>
+                    {isTwitterConnected ? (
+                      <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-green-500 text-white cursor-pointer">
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="ml-auto text-[10px] font-medium px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-600 text-white cursor-pointer">
+                        Connect
+                      </span>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               <SidebarMenuItem className="mb-2">
                 <SidebarMenuButton>
