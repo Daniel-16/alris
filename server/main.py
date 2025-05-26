@@ -190,10 +190,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 if isinstance(response, dict) and "intent" in response:
                     intent_type = response["intent"]
                     ws_response["metadata"]["intent"] = intent_type
-                    
-                    if "resolution" in response:
-                        ws_response["metadata"]["resolution"] = response["resolution"]
-                        logger.info(f"Including resolution instructions in WebSocket response")
                 
                 logger.debug(f"Sending WebSocket response: {ws_response}")
                 
@@ -249,7 +245,7 @@ async def health_check():
                 "endpoint": "/ws"
             }
         },
-        "version": "0.2.0"
+        "version": "2.0.0"
     }
 
 @app.post("/command")
