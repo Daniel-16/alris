@@ -13,11 +13,11 @@ logger = logging.getLogger("langchain_agent.react")
 
 class BaseReactAgent(ABC):
     def __init__(self, model_name: Optional[str] = None):
-        model = model_name or os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+        model = model_name or os.getenv('GEMINI_MODEL')
         
         self.llm = ChatGoogleGenerativeAI(
             model=model,
-            temperature=0,
+            temperature=0.5,
             convert_system_message_to_human=True
         )
         
