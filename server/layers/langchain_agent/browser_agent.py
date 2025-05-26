@@ -266,11 +266,11 @@ class BrowserAgent(BaseReactAgent):
             if video_urls:
                 import random
                 intro_phrases = [
-                    f"I've found some great videos about {query}! Here they are:",
-                    f"Here are some YouTube videos on {query} that might help you:",
-                    f"I searched YouTube for '{query}' and found these videos:",
-                    f"Based on your interest in {query}, these videos might be helpful:",
-                    f"Check out these videos about {query}:"
+                    f"I've found some great videos for you! Here they are:",
+                    f"Here are some helpful YouTube videos that might interest you:",
+                    f"I found these relevant videos for you:",
+                    f"These videos might be exactly what you're looking for:",
+                    f"Here are some videos I think you'll find useful:"
                 ]
                 
                 video_descriptions = []

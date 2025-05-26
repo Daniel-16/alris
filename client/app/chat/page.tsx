@@ -75,12 +75,12 @@ export default function ChatPage() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  
   useEffect(() => {
     if (showTooltip) {
       const timer = setTimeout(() => {
@@ -90,15 +90,14 @@ export default function ChatPage() {
     }
   }, [showTooltip]);
 
-  const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  };
+  // const scrollToBottom = () => {
+  //   if (chatContainerRef.current) {
+  //     chatContainerRef.current.scrollTop =
+  //       chatContainerRef.current.scrollHeight;
+  //   }
+  // };
 
   useEffect(() => {
-    scrollToBottom();
     console.log(messages);
   }, [messages]);
 
@@ -160,7 +159,6 @@ export default function ChatPage() {
 
     try {
       setInputText("");
-      setTimeout(scrollToBottom, 100);
 
       const response = await fetch(`${API_URL}/command`, {
         method: "POST",
@@ -202,17 +200,13 @@ export default function ChatPage() {
   return (
     <div className="relative min-h-screen bg-[#0A0A0F] text-white overflow-hidden">
       <ChatNavbar />
-      <ChatSidebar isMobile={isMobile} />
+      <ChatSidebar />
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      {/* <BackgroundBeams className="opacity-20" /> */}
       <div className="absolute inset-0 md:pl-64 flex flex-col mx-auto transition-all duration-300">
-        <div className="absolute inset-0 md:pl-64 transition-all duration-300">
-          <div className="absolute inset-0 opacity-30">
-            <div className="fixed top-0 -left-20 w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[64px] animate-blob animation-delay-2000"></div>
-            <div className="fixed bottom-0 -right-0 w-96 h-96 bg-blue-900/30 rounded-full mix-blend-screen filter blur-[64px] animate-blob"></div>
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[64px] animate-blob animation-delay-4000"></div>
-          </div>
-        </div>
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute right-0 w-[500px] h-[500px] bg-purple-900/20 rounded-full mix-blend-screen filter blur-[100px] opacity-70 animate-blob"></div>
+        <div className="absolute left-20 w-[500px] h-[500px] bg-blue-900/20 rounded-full mix-blend-screen filter blur-[100px] opacity-70 animate-blob animation-delay-2000"></div>
+      </div>
 
         <AnimatePresence>
           {messages.length === 0 ? (
@@ -261,7 +255,11 @@ export default function ChatPage() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask Alris to 'Schedule a reminder' or 'Search for a video'"
+                    placeholder={
+                      isMobile
+                        ? "Ask Alris..."
+                        : "Ask Alris to 'Schedule a reminder' or 'Search for a video'"
+                    }
                     className="w-full px-12 py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-4xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                   />
                   <button
@@ -278,12 +276,7 @@ export default function ChatPage() {
             <>
               <div
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto px-4 mt-16"
-                style={{
-                  overflowY: "auto",
-                  overscrollBehaviorY: "auto",
-                  // height: "calc(100vh - 180px)",
-                }}
+                className="flex-1 overflow-y-auto md:px-15 lg:px-30 px-4 mt-16 mx-auto h-[calc(100vh-200px)]"
               >
                 {/* {errorAlert} */}
                 {messages.map((message, index) => (
@@ -299,7 +292,7 @@ export default function ChatPage() {
                     <div
                       className={`max-w-[95%] md:max-w-[80%] ${
                         message.type === "user"
-                          ? "bg-[#1C1C27] text-md text-white rounded-[30px] px-3 py-2 md:px-4 md:py-4"
+                          ? "bg-[#1C1C27] text-md text-white rounded-[30px] px-6 py-2 md:px-4 md:py-4"
                           : "text-white"
                       }`}
                     >
@@ -409,7 +402,11 @@ export default function ChatPage() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask Alris to 'Schedule a reminder' or 'Search for a video'"
+                    placeholder={
+                      isMobile
+                        ? "Ask Alris..."
+                        : "Ask Alris to 'Schedule a reminder' or 'Search for a video'"
+                    }
                     className="w-full py-3 px-12 md:py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-4xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                   />
                   <button

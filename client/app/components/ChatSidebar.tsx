@@ -23,11 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface ChatSidebarProps {
-  isMobile?: boolean;
-}
-
-const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
+const ChatSidebar = () => {
   const { signOut, user, linkTwitter, isTwitterConnected } = useAuth();
   if (process.env.NODE_ENV === 'development') {
     console.log("[DEBUG] Current user:", user);
@@ -37,12 +33,10 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
   }
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
-      {isMobile && (
-        <SidebarTrigger className="fixed top-4 left-4 z-50">
-          <Menu className="w-6 h-6 text-gray-400" />
-        </SidebarTrigger>
-      )}
+    <SidebarProvider defaultOpen={true}>
+      <SidebarTrigger className="fixed top-4 left-4 z-50 md:hidden">
+        <Menu className="w-6 h-6 text-gray-400" />
+      </SidebarTrigger>
       <Sidebar className="">
         <SidebarContent>
           <SidebarGroup>
@@ -92,7 +86,6 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
                       d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"
                     ></path>
                   </svg>
-                  {/* <FaEnvelope className="w-4 h-4 text-gray-400" /> */}
                   <span className="text-gray-400">Gmail</span>
                   <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
                     Inactive
@@ -150,7 +143,6 @@ const ChatSidebar = ({ isMobile = false }: ChatSidebarProps) => {
                       d="M9,42h5v-8H6v5C6,40.657,7.343,42,9,42z"
                     ></path>
                   </svg>
-                  {/* <FaCalendar className="w-4 h-4 text-gray-400" /> */}
                   <span className="text-gray-400">Google Calendar</span>
                   <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-500 text-black">
                     Active
