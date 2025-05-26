@@ -63,12 +63,11 @@ export default function ChatPage() {
             setRemainingMessages(parseInt(storedMessages));
           }
         } else {
-          setRemainingMessages(5); // Default if nothing stored
+          setRemainingMessages(5);
           await updateMessageLimits(5);
         }
-      } catch (err)
-      {
-        setRemainingMessages(5); // Fallback on error
+      } catch (err) {
+        setRemainingMessages(5);
         console.error("Error initializing message limits:", err);
       }
     };
@@ -96,7 +95,6 @@ export default function ChatPage() {
 
   const scrollToBottom = useCallback(() => {
     if (chatContainerRef.current) {
-      // Use requestAnimationFrame for smoother scrolling after DOM updates
       requestAnimationFrame(() => {
         if (chatContainerRef.current) {
           chatContainerRef.current.scrollTop =
@@ -107,15 +105,15 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    // Scroll when new messages are added, or when a message starts/finishes typing
     if (messages.length > 0) {
       scrollToBottom();
     }
   }, [messages, typingMessageKey, scrollToBottom]);
 
-
   useEffect(() => {
-    // console.log("Messages updated:", messages); // For debugging
+    if (process.env.NEXT_PUBLIC_ENV === "development") {
+      console.log("Messages updated:", messages);
+    }
   }, [messages]);
 
   const errorAlert = error && (
@@ -146,12 +144,17 @@ export default function ChatPage() {
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && inputText.trim() && !isProcessing && !typingMessageKey) { // Prevent send while typing
+    if (
+      e.key === "Enter" &&
+      inputText.trim() &&
+      !isProcessing &&
+      !typingMessageKey
+    ) {
       e.preventDefault();
       handleSendMessage();
     }
   };
-  
+
   const handleTypingComplete = useCallback(() => {
     setTypingMessageKey(null);
   }, []);
@@ -164,7 +167,7 @@ export default function ChatPage() {
       );
       return;
     }
-    if (isProcessing || typingMessageKey) return; // Prevent multiple submissions
+    if (isProcessing || typingMessageKey) return;
 
     const videoRegex = /(youtube\.com|youtu\.be|play (a )?video|video)/i;
     setIsVideoCommand(videoRegex.test(inputText));
@@ -172,11 +175,11 @@ export default function ChatPage() {
     const newMessage: Message = {
       type: "user",
       content: inputText,
-      timestamp: new Date().toISOString() + "_user", // Ensure unique keys
+      timestamp: new Date().toISOString() + "_user",
     };
 
     setMessages((prev) => [...prev, newMessage]);
-    setInputText(""); // Clear input immediately
+    setInputText("");
     setIsProcessing(true);
     setError(null);
 
@@ -186,22 +189,22 @@ export default function ChatPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ command: newMessage.content }), // Use content from newMessage
+        body: JSON.stringify({ command: newMessage.content }),
       });
 
       const data = await response.json();
-      setIsProcessing(false); // Stop general processing indicator
+      setIsProcessing(false);
 
       if (data.type === "response") {
         const mainMessage = data.data;
         const newAssistantMessage: Message = {
           type: "assistant",
           content: mainMessage,
-          timestamp: new Date().toISOString() + "_assistant", // Ensure unique keys
+          timestamp: new Date().toISOString() + "_assistant",
           video_urls: data.video_urls,
         };
         setMessages((prev) => [...prev, newAssistantMessage]);
-        setTypingMessageKey(newAssistantMessage.timestamp); // Trigger typing animation
+        setTypingMessageKey(newAssistantMessage.timestamp);
 
         const newValue = remainingMessages - 1;
         setRemainingMessages(newValue);
@@ -211,18 +214,19 @@ export default function ChatPage() {
         setError(
           data.message || "An error occurred while processing your request."
         );
-        // Optionally add an error message to the chat
         const errorAssistantMessage: Message = {
-            type: "assistant",
-            content: data.message || "An error occurred while processing your request.",
-            timestamp: new Date().toISOString() + "_error",
+          type: "assistant",
+          content:
+            data.message || "An error occurred while processing your request.",
+          timestamp: new Date().toISOString() + "_error",
         };
         setMessages((prev) => [...prev, errorAssistantMessage]);
-        setTypingMessageKey(errorAssistantMessage.timestamp); // Type out error message too
+        setTypingMessageKey(errorAssistantMessage.timestamp);
       }
     } catch (err) {
       setIsProcessing(false);
-      const errorContent = "Failed to send message. Please check your internet connection or refresh the page.";
+      const errorContent =
+        "Failed to send message. Please check your internet connection or refresh the page.";
       setError(errorContent);
       const errorAssistantMessage: Message = {
         type: "assistant",
@@ -230,7 +234,7 @@ export default function ChatPage() {
         timestamp: new Date().toISOString() + "_catch_error",
       };
       setMessages((prev) => [...prev, errorAssistantMessage]);
-      setTypingMessageKey(errorAssistantMessage.timestamp); // Type out error message
+      setTypingMessageKey(errorAssistantMessage.timestamp);
     }
   };
 
@@ -246,7 +250,7 @@ export default function ChatPage() {
         </div>
 
         <AnimatePresence>
-          {messages.length === 0 && !isProcessing ? ( // Added !isProcessing
+          {messages.length === 0 && !isProcessing ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -297,12 +301,14 @@ export default function ChatPage() {
                         ? "Ask Alris..."
                         : "Ask Alris to 'Schedule a reminder' or 'Search for a video'"
                     }
-                    className="w-full px-12 py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-3xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all" // Changed rounded-4xl
-                    disabled={isProcessing || !!typingMessageKey} // Disable input while processing or typing
+                    className="w-full px-12 py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] rounded-3xl focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                    disabled={isProcessing || !!typingMessageKey}
                   />
                   <button
                     type="submit"
-                    disabled={!inputText.trim() || isProcessing || !!typingMessageKey} // Disable button
+                    disabled={
+                      !inputText.trim() || isProcessing || !!typingMessageKey
+                    }
                     className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors text-gray-400 hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FaPaperPlane className="w-4 h-4" />
@@ -314,78 +320,88 @@ export default function ChatPage() {
             <>
               <div
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto md:px-15 px-4 mt-16 md:mx-10 h-[calc(100vh-200px)] pb-4" // Added pb-4
+                className="flex-1 overflow-y-auto md:px-15 px-4 mt-16 md:mx-10 h-[calc(100vh-200px)] pb-4"
               >
-                {messages.map((message) => ( // Use message.timestamp for key
-                  <motion.div
-                    key={message.timestamp} // Use unique timestamp as key
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex flex-col ${
-                      message.type === "user" ? "items-end" : "items-start"
-                    } mb-4 w-full`}
-                  >
-                    <div
-                      className={`max-w-[95%] md:max-w-[95%] ${
-                        message.type === "user"
-                          ? "bg-[#1C1C27] text-md text-white rounded-[30px] px-6 py-3 md:px-4 md:py-3" // Adjusted padding
-                          : "text-white" // Assistant messages will be styled by TypingMessageRenderer or ReactMarkdown
-                      }`}
+                {messages.map(
+                  (
+                    message
+                  ) => (
+                    <motion.div
+                      key={message.timestamp}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className={`flex flex-col ${
+                        message.type === "user" ? "items-end" : "items-start"
+                      } mb-4 w-full`}
                     >
-                      {message.type === "assistant" ? (
-                        typingMessageKey === message.timestamp ? (
-                          <TypingMessageRenderer
-                            content={message.content}
-                            onComplete={handleTypingComplete}
-                            scrollToBottom={scrollToBottom}
-                            typingSpeed={25} // Adjust speed as desired
-                          />
+                      <div
+                        className={`max-w-[95%] md:max-w-[95%] ${
+                          message.type === "user"
+                            ? "bg-[#1C1C27] text-md text-white rounded-[30px] px-6 py-3 md:px-4 md:py-3"
+                            : "text-white"
+                        }`}
+                      >
+                        {message.type === "assistant" ? (
+                          typingMessageKey === message.timestamp ? (
+                            <TypingMessageRenderer
+                              content={message.content}
+                              onComplete={handleTypingComplete}
+                              scrollToBottom={scrollToBottom}
+                              typingSpeed={8}
+                            />
+                          ) : (
+                            <div className="prose prose-invert max-w-none text-md break-words text-gray-200 leading-relaxed">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  code({
+                                    node,
+                                    className,
+                                    children,
+                                    ...props
+                                  }) {
+                                    const match = /language-(\w+)/.exec(
+                                      className || ""
+                                    );
+                                    return !(props as any).inline && match ? (
+                                      <SyntaxHighlighter
+                                        style={oneDark}
+                                        language={match[1]}
+                                        PreTag="div"
+                                        customStyle={{
+                                          borderRadius: "0.5rem",
+                                          padding: "1em",
+                                          margin: "0.5em 0",
+                                        }}
+                                      >
+                                        {String(children).replace(/\n$/, "")}
+                                      </SyntaxHighlighter>
+                                    ) : (
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    );
+                                  },
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
+                          )
                         ) : (
-                          <div className="prose prose-invert max-w-none text-md break-words text-gray-200 leading-relaxed">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                code({ node, className, children, ...props }) {
-                                  const match = /language-(\w+)/.exec(
-                                    className || ""
-                                  );
-                                  return !(props as any).inline && match ? (
-                                    <SyntaxHighlighter
-                                      // @ts-ignore
-                                      style={oneDark}
-                                      language={match[1]}
-                                      PreTag="div"
-                                      customStyle={{
-                                        borderRadius: "0.5rem",
-                                        padding: "1em",
-                                        margin: "0.5em 0",
-                                      }}
-                                    >
-                                      {String(children).replace(/\n$/, "")}
-                                    </SyntaxHighlighter>
-                                  ) : (
-                                    <code className={className} {...props}>{children}</code>
-                                  );
-                                },
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                        )
-                      ) : (
-                        <p className="text-md md:text-sm text-white break-words">
-                          {message.content}
-                        </p>
+                          <p className="text-md md:text-sm text-white break-words">
+                            {message.content}
+                          </p>
+                        )}
+                      </div>
+                      {message.type === "assistant" && message.video_urls && (
+                        <VideoGrid videoUrls={message.video_urls} />
                       )}
-                    </div>
-                    {message.type === "assistant" && message.video_urls && (
-                      <VideoGrid videoUrls={message.video_urls} />
-                    )}
-                  </motion.div>
-                ))}
-                {isProcessing && ( // Show processing indicator if API call is in flight
+                    </motion.div>
+                  )
+                )}
+                {isProcessing && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -422,9 +438,10 @@ export default function ChatPage() {
                       }
                       className="w-full py-3 px-8 md:py-4 bg-[#1C1C27] text-white placeholder-gray-500 text-[15px] transition-all"
                       style={{ outline: "none" }}
-                      disabled={isProcessing || !!typingMessageKey} // Disable input while processing or typing
+                      disabled={isProcessing || !!typingMessageKey}
                     />
-                    <div className="relative top-8 md:top-6"> {/* Adjusted top positioning */}
+                    <div className="relative top-8 md:top-6">
+                      {" "}
                       <button
                         type="button"
                         onClick={() => setShowTooltip(true)}
@@ -448,7 +465,7 @@ export default function ChatPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 10 }}
-                                className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg whitespace-nowrap z-10" // Added z-index
+                                className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg whitespace-nowrap z-10"
                               >
                                 {remainingMessages} message
                                 {remainingMessages !== 1 ? "s" : ""} remaining
@@ -460,7 +477,11 @@ export default function ChatPage() {
                       </div>
                       <button
                         type="submit"
-                        disabled={!inputText.trim() || isProcessing || !!typingMessageKey} // Disable button
+                        disabled={
+                          !inputText.trim() ||
+                          isProcessing ||
+                          !!typingMessageKey
+                        }
                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors text-gray-400 hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <FaPaperPlane className="w-4 h-4" />
