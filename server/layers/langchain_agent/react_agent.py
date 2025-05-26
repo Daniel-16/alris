@@ -31,7 +31,7 @@ class BaseReactAgent(ABC):
         self.agent_executor = create_react_agent(
             model=self.llm,
             tools=self.tools,
-            state_modifier=_state_modifier,
+            # state_modifier=_state_modifier,
             checkpointer=self.memory
         )
         
