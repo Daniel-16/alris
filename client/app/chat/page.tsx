@@ -50,14 +50,14 @@ export default function ChatPage() {
 
         if (lastResetTime) {
           const timeDiff = Date.now() - parseInt(lastResetTime);
-          if (timeDiff >= 24 * 60 * 60 * 1000) {
-            setRemainingMessages(3);
-            await updateMessageLimits(3);
+          if (timeDiff >= 5 * 60 * 60 * 1000) {
+            setRemainingMessages(5);
+            await updateMessageLimits(5);
           } else if (storedMessages) {
             setRemainingMessages(parseInt(storedMessages));
           }
         } else {
-          await updateMessageLimits(3);
+          await updateMessageLimits(5);
         }
       } catch (err) {
         console.error("Error initializing message limits:", err);
