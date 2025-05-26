@@ -107,17 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const linkTwitter = async () => {
-    const { error } = await supabase.auth.linkIdentity({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "twitter",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) throw error;
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    setUser(session?.user ?? null);
   };
 
   const isTwitterConnected = !!user?.identities?.some(
