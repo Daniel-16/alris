@@ -13,13 +13,13 @@ export async function updateMessageLimits(remainingMessages: number) {
   const cookieStore = await cookies();
   cookieStore.set("remainingMessages", remainingMessages.toString(), {
     path: "/", 
-    maxAge: 24 * 60 * 60,
+    maxAge: 5 * 60 * 60,
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
   });
   cookieStore.set("lastMessageResetTime", Date.now().toString(), {
     path: "/",
-    maxAge: 24 * 60 * 60,
+    maxAge: 5 * 60 * 60,
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
   });

@@ -135,7 +135,7 @@ export default function ChatPage() {
     if (!inputText.trim()) return;
     if (remainingMessages <= 0) {
       setError(
-        "Message limit reached. Please wait 24 hours for your limit to reset."
+        "Message limit reached. Please wait 5 hours for your limit to reset."
       );
       return;
     }
