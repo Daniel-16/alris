@@ -54,6 +54,7 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-192x192.png" />
         <link rel="shortcut icon" href="/icons/icon-192x192.png" />
         <link rel="manifest" href="/manifest.json" />
+        <meta name="google-site-verification" content="AJRCp4-bAyySyVzwnwlYTtnqDzWiHfmjtjnwsgSHqpw" />
       </head>
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>
