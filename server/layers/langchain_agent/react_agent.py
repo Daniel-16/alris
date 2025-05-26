@@ -8,7 +8,7 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.agents import Tool
-from ..config.prompt import SYSTEM_PROMPT
+from config.prompt import SYSTEM_PROMPT
 
 logger = logging.getLogger("langchain_agent.react")
 
