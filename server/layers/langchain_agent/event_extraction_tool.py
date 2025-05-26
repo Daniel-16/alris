@@ -1,14 +1,13 @@
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
 llm = ChatGoogleGenerativeAI(
     model=os.getenv('GEMINI_MODEL'),
-    temperature=0.5,
-    convert_system_message_to_human=True
+    temperature=0.5
 )
 
 CURRENT_DATE = datetime.now().strftime("%Y-%m-%d")

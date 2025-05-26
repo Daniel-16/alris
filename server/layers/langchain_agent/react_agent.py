@@ -6,8 +6,9 @@ import asyncio
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.agents import Tool
+from config.prompt import SYSTEM_PROMPT
 
 logger = logging.getLogger("langchain_agent.react")
 
@@ -17,18 +18,20 @@ class BaseReactAgent(ABC):
         
         self.llm = ChatGoogleGenerativeAI(
             model=model,
-            temperature=0.5,
-            convert_system_message_to_human=True
+            temperature=0.5
         )
         
         self.memory = MemorySaver()
         self.tools = self._get_tools()
         
-        system_message = self._get_system_prompt()
+        def _state_modifier(state):
+            system_prompt = self._get_system_prompt()
+            return [SystemMessage(content=system_prompt)] + state["messages"]
+        
         self.agent_executor = create_react_agent(
             model=self.llm,
             tools=self.tools,
-            state_modifier=system_message,
+            state_modifier=_state_modifier,
             checkpointer=self.memory
         )
         
@@ -40,7 +43,7 @@ class BaseReactAgent(ABC):
     
     @abstractmethod
     def _get_system_prompt(self) -> str:
-        pass
+        return SYSTEM_PROMPT
     
     async def execute(self, input_text: str, thread_id: str = None) -> Dict[str, Any]:
         try:
