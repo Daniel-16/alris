@@ -18,8 +18,7 @@ class BaseReactAgent(ABC):
         
         self.llm = ChatGoogleGenerativeAI(
             model=model,
-            temperature=0.5,
-            convert_system_message_to_human=True
+            temperature=0.5
         )
         
         self.memory = MemorySaver()
