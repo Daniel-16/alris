@@ -101,7 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-      },
+        scopes: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events"
+      },      
     });
     if (error) throw error;
   };
