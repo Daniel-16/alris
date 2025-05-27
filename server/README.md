@@ -39,6 +39,7 @@ Alris follows a layered architecture with three distinct layers:
 - REST API endpoints
 - AI agent integration
 - Cross-Origin Resource Sharing (CORS) support
+- **Enhanced Form Automation**: Alris can now extract, infer, and fill web forms from natural language commands, intelligently handling missing fields and prompting the user for clarification when needed.
 
 ## Prerequisites
 
@@ -122,16 +123,18 @@ Here's an example of how Alris processes the command "Fill out the form on examp
 
 1. **LangChain Agent Layer**:
    - Interprets the command and plans steps: navigate to URL, find name field, input "John", submit
+   - **NEW:** Extracts and infers all required form fields (e.g., name, email, country, gender), using defaults or user profile if not specified. Prompts the user if required fields are missing.
 2. **MCP Connector Layer**:
    - Provides tools to the agent:
      - `navigate_to_url("https://example.com")`
-     - `fill_form_field("#name", "John")`
+     - `fill_form({"name": "John", "country": "Nigeria", "gender": "male"})`
      - `click_button("#submit")`
 3. **External Services Layer (Playwright)**:
    - Executes the actions in a browser:
      - Loads the webpage
-     - Inputs "John" in the name field
+     - Inputs the extracted/inferred data in the form fields
      - Submits the form
+   - If the form has errors (e.g., required fields missing), Alris requests the necessary information and retries.
 
 Another example, scheduling a calendar event:
 
@@ -179,10 +182,10 @@ The server supports Google Calendar integration through Google Apps Script. This
 2. **Configure Environment Variables:**
 
    - Add the Google Apps Script URL to your `.env` file:
-     ```
-     GOOGLE_APPS_SCRIPT_CALENDAR_URL=https://script.google.com/macros/s/your-unique-deployment-id/exec
-     ```
-<!-- 
+   `    GOOGLE_APPS_SCRIPT_CALENDAR_URL=https://script.google.com/macros/s/your-unique-deployment-id/exec
+`
+   <!--
+
 3. **Testing the Integration:**
    - Run the test script to verify the calendar integration:
      ```bash

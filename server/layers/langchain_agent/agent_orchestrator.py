@@ -5,6 +5,7 @@ from .browser_agent import BrowserAgent
 from .calendar_handler import handle_calendar_intent
 from .youtube_handler import detect_youtube_url, is_youtube_search_command, extract_youtube_search_query, create_youtube_direct_url_response
 from .intent_detector import IntentDetector
+from .form_extraction_tool import extract_form_fields
 
 logger = logging.getLogger("langchain_agent.orchestrator")
 
@@ -52,6 +53,44 @@ class AgentOrchestrator:
                 return response
             
             intent = self.intent_detector.detect_intent(command)
+            
+            # --- Enhanced Form Automation Integration ---
+            form_keywords = ["fill form", "fill the form", "registration", "register", "sign up", "sign me up", "submit form", "apply", "subscribe"]
+            if intent == "browser" and any(kw in command.lower() for kw in form_keywords):
+                logger.info("Detected form-related command. Extracting form fields.")
+                form_fields = await extract_form_fields(command)
+                if form_fields.get("needs_clarification"):
+                    logger.info(f"Form extraction needs clarification: {form_fields['needs_clarification']}")
+                    return {
+                        "intent": "form_fill",
+                        "command": command,
+                        "result": {
+                            "status": "clarification_needed",
+                            "message": form_fields["needs_clarification"],
+                            "fields": form_fields
+                        }
+                    }
+                # Call MCP fill_form tool
+                if self.mcp_client:
+                    mcp_result = await self.mcp_client.call_tool("fill_form", {"form_data": form_fields})
+                    return {
+                        "intent": "form_fill",
+                        "command": command,
+                        "result": mcp_result,
+                        "fields": form_fields
+                    }
+                else:
+                    logger.error("MCP client not available for form filling.")
+                    return {
+                        "intent": "form_fill",
+                        "command": command,
+                        "result": {
+                            "status": "error",
+                            "message": "MCP client not available for form filling."
+                        },
+                        "fields": form_fields
+                    }
+            # --- End Enhanced Form Automation Integration ---
             
             if intent == "browser":
                 result = await self.browser_agent.execute(command, thread_id=thread_id)
