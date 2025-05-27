@@ -39,52 +39,89 @@ class BrowserService:
                 logger.error("No form found on the page.")
                 return False
             input_elements = await form.query_selector_all('input, select, textarea')
-            field_map = {}
-            for element in input_elements:
-                name = await element.get_attribute('name')
-                el_id = await element.get_attribute('id')
-                placeholder = await element.get_attribute('placeholder')
-                label_text = None
-                if el_id:
-                    label = await page.query_selector(f'label[for="{el_id}"]')
-                    if label:
-                        label_text = (await label.inner_text()).strip().lower()
-                keys = set()
-                if name:
-                    keys.add(name.strip().lower())
-                if el_id:
-                    keys.add(el_id.strip().lower())
-                if placeholder:
-                    keys.add(placeholder.strip().lower())
-                if label_text:
-                    keys.add(label_text)
-                for key in keys:
-                    field_map[key] = element
-            for field, value in form_data.items():
-                field_key = field.strip().lower()
-                matched = False
-                if field_key in field_map:
-                    await field_map[field_key].fill(str(value))
-                    matched = True
-                else:
-                    for key, element in field_map.items():
-                        if field_key in key or key in field_key:
-                            await element.fill(str(value))
-                            matched = True
+            field_info = []
+            for el in input_elements:
+                props = await page.evaluate(
+                    '''el => ({
+                        name: el.name || null,
+                        id: el.id || null,
+                        placeholder: el.placeholder || null,
+                        aria_label: el.getAttribute("aria-label") || null,
+                        type: el.type || null,
+                        tag: el.tagName.toLowerCase(),
+                        label: null
+                    })''',
+                    el
+                )
+                if props['id']:
+                    label_el = await page.query_selector(f'label[for="{props["id"]}"]')
+                    if label_el:
+                        props['label'] = await label_el.inner_text()
+                if not props['label']:
+                    parent_label = await el.evaluate_handle('(el) => el.closest("label")')
+                    if parent_label:
+                        try:
+                            props['label'] = await parent_label.inner_text()
+                        except Exception:
+                            pass
+                field_info.append({'element': el, 'props': props})
+            matched = set()
+            for user_key, user_value in form_data.items():
+                user_key_lower = user_key.lower().replace('_', '').replace(' ', '')
+                best_match = None
+                best_score = 0
+                for field in field_info:
+                    props = field['props']
+                    candidates = [
+                        props.get('name', ''),
+                        props.get('id', ''),
+                        props.get('placeholder', ''),
+                        props.get('aria_label', ''),
+                        props.get('label', '')
+                    ]
+                    for cand in candidates:
+                        if not cand:
+                            continue
+                        cand_norm = cand.lower().replace('_', '').replace(' ', '')
+                        if user_key_lower == cand_norm:
+                            best_match = field
+                            best_score = 3
                             break
-                if not matched:
-                    logger.warning(f"Could not match form field '{field}' to any input on the page.")
+                        if user_key_lower in cand_norm or cand_norm in user_key_lower:
+                            if best_score < 2:
+                                best_match = field
+                                best_score = 2
+                    if best_score == 3:
+                        break
+                if best_match:
+                    el = best_match['element']
+                    tag = best_match['props']['tag']
+                    try:
+                        if tag == 'input' and best_match['props']['type'] in ['checkbox', 'radio']:
+                            await el.set_checked(bool(user_value))
+                        elif tag == 'select':
+                            await el.select_option(str(user_value))
+                        else:
+                            await el.fill(str(user_value))
+                        matched.add(id(el))
+                    except Exception as e:
+                        logger.warning(f"Failed to fill field {user_key}: {e}")
+                else:
+                    logger.warning(f"Could not match user field '{user_key}' to any form input.")
             try:
-                await form.evaluate('(form) => form.submit()')
-            except Exception as e:
-                submit_btn = await form.query_selector('button[type="submit"], input[type="submit"]')
+                submit_btn = await form.query_selector('button[type="submit"],input[type="submit"]')
                 if submit_btn:
                     await submit_btn.click()
                 else:
-                    logger.warning("Could not find a submit button to submit the form.")
+                    await form.evaluate('(f) => f.submit()')
+            except Exception as e:
+                logger.warning(f"Could not submit form: {e}")
+            if not matched:
+                logger.error("No user fields matched any form inputs.")
+                return False
             return True
         except Exception as e:
-            logger.error(f"Failed to fill form: {str(e)}")
+            logger.error(f"Error in fill_form: {e}")
             return False
     
     async def click_element(self, selector: str) -> bool:

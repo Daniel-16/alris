@@ -4,6 +4,7 @@ from langchain.agents import Tool
 from langchain_community.tools import YouTubeSearchTool
 from .react_agent import BaseReactAgent
 from config.prompt import SYSTEM_PROMPT
+from layers.external_services.browser_service import BrowserService
 
 logger = logging.getLogger("langchain_agent.browser")
 
@@ -11,6 +12,7 @@ class BrowserAgent(BaseReactAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.youtube_tool = YouTubeSearchTool()
+        self.browser_service = BrowserService()
     
     def _get_tools(self) -> List[Tool]:
         return [
@@ -162,16 +164,49 @@ class BrowserAgent(BaseReactAgent):
         try:
             import json
             data = json.loads(input_str)
+            url = data.get("url")
             form_data = data.get("form_data", {})
+            selectors = data.get("selectors", None)
+            if not url:
+                return {
+                    "status": "error",
+                    "message": "No URL provided. Please specify the form URL."
+                }
             if not form_data:
                 return {
                     "status": "error",
                     "message": "No form data provided. Please specify at least one field to fill."
                 }
-            logger.info(f"Would fill form with data: {form_data}")
+            await self.browser_service.initialize()
+            nav_success = await self.browser_service.navigate(url)
+            if not nav_success:
+                return {
+                    "status": "error",
+                    "message": f"Failed to navigate to {url}."
+                }
+            fill_success = await self.browser_service.fill_form(form_data, selectors)
+            if not fill_success:
+                discovered_fields = await self.browser_service.discover_form_fields(url)
+                field_names = [f["field_name"] for f in discovered_fields] if discovered_fields else []
+                missing_fields = []
+                for key in form_data.keys():
+                    if key not in field_names:
+                        missing_fields.append(key)
+                message = f"Failed to fill the form at {url}. "
+                if discovered_fields:
+                    message += f"Discovered form fields: {field_names}. "
+                if missing_fields:
+                    message += f"The following fields could not be matched: {missing_fields}. "
+                message += "Please check your input or provide additional details."
+                return {
+                    "status": "error",
+                    "message": message,
+                    "discovered_fields": discovered_fields,
+                    "missing_fields": missing_fields
+                }
             return {
                 "status": "success",
-                "message": "Filled form successfully"
+                "message": f"Filled form at {url} successfully."
             }
         except Exception as e:
             logger.error(f"Failed to fill form: {str(e)}")
