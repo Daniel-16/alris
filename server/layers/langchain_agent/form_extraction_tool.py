@@ -3,10 +3,12 @@ import json
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+import re
+from ..mcp_connector.alt_form_service import SimpleFormService
 
 llm = ChatGoogleGenerativeAI(
     model=os.getenv('GEMINI_MODEL'),
-    temperature=0
+    temperature=0.5
 )
 
 DEFAULTS = {
@@ -73,35 +75,69 @@ Output:
 form_extraction_chain = LLMChain(llm=llm, prompt=prompt)
 
 async def extract_form_fields(user_command: str) -> dict:
+    url_pattern = r'https?://\S+|www\.\S+'
+    urls = re.findall(url_pattern, user_command)
+    extracted_url = urls[0] if urls else None
     defaults_str = json.dumps(DEFAULTS)
     input_dict = {
         "user_command": user_command,
         "defaults": defaults_str
     }
-    print("Calling form_extraction_chain.arun with:", input_dict)
+    print("Calling form_extraction_chain.ainvoke with:", input_dict)
     try:
-        response = await form_extraction_chain.arun(**input_dict)
+        response = await form_extraction_chain.ainvoke(input_dict)
     except ValueError as ve:
         import traceback
-        print("ValueError in form_extraction_chain.arun:", ve)
+        print("ValueError in form_extraction_chain.ainvoke:", ve)
         traceback.print_exc()
         return {
             "status": "error",
-            "result": f"ValueError in form_extraction_chain.arun: {ve}",
+            "result": f"ValueError in form_extraction_chain.ainvoke: {ve}",
             "input_dict": input_dict
         }
     try:
-        return json.loads(response)
-    except Exception:
-        import re
-        match = re.search(r"\{.*\}", response, re.DOTALL)
-        if match:
+        if isinstance(response, dict):
+            result = response
+        elif isinstance(response, str):
             try:
-                return json.loads(match.group(0))
+                result = json.loads(response)
             except Exception:
-                pass
+                match = re.search(r"\{.*\}", response, re.DOTALL)
+                if match:
+                    try:
+                        result = json.loads(match.group(0))
+                    except Exception:
+                        result = {
+                            "status": "error",
+                            "result": "Failed to parse form fields from LLM output.",
+                            "raw_response": response
+                        }
+                else:
+                    result = {
+                        "status": "error",
+                        "result": "Failed to parse form fields from LLM output.",
+                        "raw_response": response
+                    }
+        else:
+            result = {
+                "status": "error",
+                "result": "Unexpected response type from LLM.",
+                "raw_response": str(response)
+            }
+            
+        if isinstance(result, dict):
+            if not result.get("url") and extracted_url:
+                result["url"] = extracted_url
+                
+            if result.get("url") and result.get("form_data"):
+                form_service = SimpleFormService()
+                form_result = await form_service.fill_form(result["url"], result["form_data"])
+                result.update(form_result)
+                
+        return result
+    except Exception:
         return {
             "status": "error",
             "result": "Failed to parse form fields from LLM output.",
-            "raw_response": response
+            "raw_response": str(response)
         } 
