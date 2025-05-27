@@ -35,34 +35,34 @@ Rules:
 Examples:
 
 Command: "Sign me up for a tech newsletter on https://example.com/newsletter with my name John Doe and email john.doe@example.com"
-Defaults: {"country": "Nigeria", "gender": "male"}
+Defaults: {{"country": "Nigeria", "gender": "male"}}
 Output:
-{
+{{
   "url": "https://example.com/newsletter",
-  "form_data": {
+  "form_data": {{
     "name": "John Doe",
     "email": "john.doe@example.com"
-  }
-}
+  }}
+}}
 
 Command: "Register for the event at https://event.com/register with email jane@sample.com"
-Defaults: {"country": "Nigeria", "gender": "male"}
+Defaults: {{"country": "Nigeria", "gender": "male"}}
 Output:
-{
+{{
   "url": "https://event.com/register",
-  "form_data": {
+  "form_data": {{
     "email": "jane@sample.com"
-  }
-}
+  }}
+}}
 
 Command: "Fill the registration form on www.example.com with my details"
-Defaults: {"country": "Nigeria", "gender": "male"}
+Defaults: {{"country": "Nigeria", "gender": "male"}}
 Output:
-{
+{{
   "url": "www.example.com",
-  "form_data": {},
+  "form_data": {{}},
   "needs_clarification": "Name and email are required but not provided. Please provide your name and email."
-}
+}}
 
 Command: "{user_command}"
 Defaults: {defaults}
@@ -74,10 +74,22 @@ form_extraction_chain = LLMChain(llm=llm, prompt=prompt)
 
 async def extract_form_fields(user_command: str) -> dict:
     defaults_str = json.dumps(DEFAULTS)
-    response = await form_extraction_chain.arun(
-        user_command=user_command,
-        defaults=defaults_str
-    )
+    input_dict = {
+        "user_command": user_command,
+        "defaults": defaults_str
+    }
+    print("Calling form_extraction_chain.arun with:", input_dict)
+    try:
+        response = await form_extraction_chain.arun(**input_dict)
+    except ValueError as ve:
+        import traceback
+        print("ValueError in form_extraction_chain.arun:", ve)
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "result": f"ValueError in form_extraction_chain.arun: {ve}",
+            "input_dict": input_dict
+        }
     try:
         return json.loads(response)
     except Exception:

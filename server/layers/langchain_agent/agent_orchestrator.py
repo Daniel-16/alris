@@ -53,18 +53,15 @@ class AgentOrchestrator:
                 return response
             
             intent = self.intent_detector.detect_intent(command)
-            
-            form_keywords = ["fill form", "fill the form", "registration", "register", "sign up", "sign me up", "submit form", "apply", "subscribe"]
-            if intent == "browser" and any(kw in command.lower() for kw in form_keywords):
-                logger.info("Detected form-related command. Extracting form fields.")
+            if intent == "fill_form":
                 extraction = await extract_form_fields(command)
                 url = extraction.get("url")
-                user_form_data = extraction.get("form_data") or {}
+                form_data = extraction.get("form_data") or {}
                 needs_clarification = extraction.get("needs_clarification")
                 if not url:
                     logger.info("Form extraction missing URL. Prompting user for clarification.")
                     return {
-                        "intent": "form_fill",
+                        "intent": "fill_form",
                         "command": command,
                         "result": {
                             "status": "clarification_needed",
@@ -72,11 +69,10 @@ class AgentOrchestrator:
                             "fields": extraction
                         }
                     }
-                needs_clarification = extraction.get("needs_clarification")
                 if needs_clarification:
                     logger.info(f"Form extraction needs clarification: {needs_clarification}")
                     return {
-                        "intent": "form_fill",
+                        "intent": "fill_form",
                         "command": command,
                         "result": {
                             "status": "clarification_needed",
@@ -85,46 +81,17 @@ class AgentOrchestrator:
                         }
                     }
                 if self.mcp_client:
-                    discover_result = await self.mcp_client.call_tool("discover_form_fields", {"url": url})
-                    discovered_fields = discover_result.get("fields", []) if discover_result.get("status") == "success" else []
-                    merged_form_data = {}
-                    for field in discovered_fields:
-                        field_name = field.get("field_name")
-                        label = field.get("label")
-                        value = None
-                        for k, v in user_form_data.items():
-                            if k.strip().lower() == field_name.strip().lower() or (label and k.strip().lower() == label.strip().lower()):
-                                value = v
-                                break
-                        if not value:
-                            from .form_extraction_tool import DEFAULTS
-                            value = DEFAULTS.get(field_name.strip().lower())
-                        merged_form_data[field_name] = value or ""
-                    for k, v in user_form_data.items():
-                        if k not in merged_form_data:
-                            merged_form_data[k] = v
-                    missing_fields = [f for f, v in merged_form_data.items() if not v]
-                    if missing_fields:
-                        return {
-                            "intent": "form_fill",
-                            "command": command,
-                            "result": {
-                                "status": "clarification_needed",
-                                "message": f"Please provide values for the following fields: {', '.join(missing_fields)}.",
-                                "fields": merged_form_data
-                            }
-                        }
-                    mcp_result = await self.mcp_client.call_tool("fill_form", {"url": url, "form_data": merged_form_data})
+                    mcp_result = await self.mcp_client.call_tool("fill_form", {"params": {"url": url, "form_data": form_data}})
                     return {
-                        "intent": "form_fill",
+                        "intent": "fill_form",
                         "command": command,
                         "result": mcp_result,
-                        "fields": merged_form_data
+                        "fields": form_data
                     }
                 else:
                     logger.error("MCP client not available for form filling.")
                     return {
-                        "intent": "form_fill",
+                        "intent": "fill_form",
                         "command": command,
                         "result": {
                             "status": "error",
@@ -132,8 +99,7 @@ class AgentOrchestrator:
                         },
                         "fields": extraction
                     }
-            
-            if intent == "browser":
+            elif intent == "browser":
                 result = await self.browser_agent.execute(command, thread_id=thread_id)
             elif intent == "calendar":
                 result = await self._handle_calendar_intent(command)

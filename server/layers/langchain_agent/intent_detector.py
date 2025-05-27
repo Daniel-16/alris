@@ -6,13 +6,14 @@ from .intent_schema import IntentResult
 
 class IntentDetector:
     def __init__(self):
-        self.intents = ["browser", "email", "calendar", "general"]
+        self.intents = ["fill_form", "browser", "email", "calendar", "general"]
         self.llm = ChatGoogleGenerativeAI(model=os.getenv('GEMINI_MODEL'), temperature=0)
         self.parser = PydanticOutputParser(pydantic_object=IntentResult)
         self.prompt = PromptTemplate(
             template=(
                 "You are an intent detection assistant.\n"
                 "Given the following user input, classify it into one of these intents: {intents}.\n"
+                "If the user is asking to fill, register, sign up, submit, or apply via a web form, classify as 'fill_form'.\n"
                 "If none fit, return 'general'.\n"
                 "Respond in the following JSON format:\n"
                 "{format_instructions}\n"
