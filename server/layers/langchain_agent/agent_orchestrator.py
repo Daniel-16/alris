@@ -59,7 +59,7 @@ class AgentOrchestrator:
                 logger.info("Detected form-related command. Extracting form fields.")
                 extraction = await extract_form_fields(command)
                 url = extraction.get("url")
-                form_data = extraction.get("form_data")
+                user_form_data = extraction.get("form_data") or {}
                 needs_clarification = extraction.get("needs_clarification")
                 if not url:
                     logger.info("Form extraction missing URL. Prompting user for clarification.")
@@ -72,6 +72,7 @@ class AgentOrchestrator:
                             "fields": extraction
                         }
                     }
+                needs_clarification = extraction.get("needs_clarification")
                 if needs_clarification:
                     logger.info(f"Form extraction needs clarification: {needs_clarification}")
                     return {
@@ -84,12 +85,41 @@ class AgentOrchestrator:
                         }
                     }
                 if self.mcp_client:
-                    mcp_result = await self.mcp_client.call_tool("fill_form", {"url": url, "form_data": form_data})
+                    discover_result = await self.mcp_client.call_tool("discover_form_fields", {"url": url})
+                    discovered_fields = discover_result.get("fields", []) if discover_result.get("status") == "success" else []
+                    merged_form_data = {}
+                    for field in discovered_fields:
+                        field_name = field.get("field_name")
+                        label = field.get("label")
+                        value = None
+                        for k, v in user_form_data.items():
+                            if k.strip().lower() == field_name.strip().lower() or (label and k.strip().lower() == label.strip().lower()):
+                                value = v
+                                break
+                        if not value:
+                            from .form_extraction_tool import DEFAULTS
+                            value = DEFAULTS.get(field_name.strip().lower())
+                        merged_form_data[field_name] = value or ""
+                    for k, v in user_form_data.items():
+                        if k not in merged_form_data:
+                            merged_form_data[k] = v
+                    missing_fields = [f for f, v in merged_form_data.items() if not v]
+                    if missing_fields:
+                        return {
+                            "intent": "form_fill",
+                            "command": command,
+                            "result": {
+                                "status": "clarification_needed",
+                                "message": f"Please provide values for the following fields: {', '.join(missing_fields)}.",
+                                "fields": merged_form_data
+                            }
+                        }
+                    mcp_result = await self.mcp_client.call_tool("fill_form", {"url": url, "form_data": merged_form_data})
                     return {
                         "intent": "form_fill",
                         "command": command,
                         "result": mcp_result,
-                        "fields": extraction
+                        "fields": merged_form_data
                     }
                 else:
                     logger.error("MCP client not available for form filling.")

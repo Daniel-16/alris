@@ -163,9 +163,12 @@ class BrowserAgent(BaseReactAgent):
             import json
             data = json.loads(input_str)
             form_data = data.get("form_data", {})
-            selectors = data.get("selectors", {})
-            
-            logger.info(f"Would fill form with data: {form_data}, selectors: {selectors}")
+            if not form_data:
+                return {
+                    "status": "error",
+                    "message": "No form data provided. Please specify at least one field to fill."
+                }
+            logger.info(f"Would fill form with data: {form_data}")
             return {
                 "status": "success",
                 "message": "Filled form successfully"

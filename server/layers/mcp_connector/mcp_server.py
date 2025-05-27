@@ -121,17 +121,14 @@ class MCPConnector:
             try:
                 url = None
                 form_data = None
-                selectors = None
                 if "url" in params:
                     url = params["url"]
                 elif "params" in params and isinstance(params["params"], dict) and "url" in params["params"]:
                     url = params["params"]["url"]
                 if "form_data" in params:
                     form_data = params["form_data"]
-                    selectors = params.get("selectors")
                 elif "params" in params and isinstance(params["params"], dict):
                     form_data = params["params"].get("form_data")
-                    selectors = params["params"].get("selectors")
                 if not url:
                     return {
                         "status": "error",
@@ -140,7 +137,7 @@ class MCPConnector:
                 if not form_data:
                     return {
                         "status": "error",
-                        "message": "form_data parameter is required"
+                        "message": "form_data parameter is required. Please specify at least one field to fill."
                     }
                 nav_success = await self.browser_service.navigate(url)
                 if not nav_success:
@@ -148,7 +145,7 @@ class MCPConnector:
                         "status": "error",
                         "message": f"Failed to navigate to {url}"
                     }
-                fill_success = await self.browser_service.fill_form(form_data, selectors)
+                fill_success = await self.browser_service.fill_form(form_data, None)
                 if fill_success:
                     return {
                         "status": "success",
