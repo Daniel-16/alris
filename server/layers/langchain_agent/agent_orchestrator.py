@@ -54,30 +54,42 @@ class AgentOrchestrator:
             
             intent = self.intent_detector.detect_intent(command)
             
-            # --- Enhanced Form Automation Integration ---
             form_keywords = ["fill form", "fill the form", "registration", "register", "sign up", "sign me up", "submit form", "apply", "subscribe"]
             if intent == "browser" and any(kw in command.lower() for kw in form_keywords):
                 logger.info("Detected form-related command. Extracting form fields.")
-                form_fields = await extract_form_fields(command)
-                if form_fields.get("needs_clarification"):
-                    logger.info(f"Form extraction needs clarification: {form_fields['needs_clarification']}")
+                extraction = await extract_form_fields(command)
+                url = extraction.get("url")
+                form_data = extraction.get("form_data")
+                needs_clarification = extraction.get("needs_clarification")
+                if not url:
+                    logger.info("Form extraction missing URL. Prompting user for clarification.")
                     return {
                         "intent": "form_fill",
                         "command": command,
                         "result": {
                             "status": "clarification_needed",
-                            "message": form_fields["needs_clarification"],
-                            "fields": form_fields
+                            "message": "The form URL is required but was not found in your command. Please provide the URL of the form you want to fill.",
+                            "fields": extraction
                         }
                     }
-                # Call MCP fill_form tool
+                if needs_clarification:
+                    logger.info(f"Form extraction needs clarification: {needs_clarification}")
+                    return {
+                        "intent": "form_fill",
+                        "command": command,
+                        "result": {
+                            "status": "clarification_needed",
+                            "message": needs_clarification,
+                            "fields": extraction
+                        }
+                    }
                 if self.mcp_client:
-                    mcp_result = await self.mcp_client.call_tool("fill_form", {"form_data": form_fields})
+                    mcp_result = await self.mcp_client.call_tool("fill_form", {"url": url, "form_data": form_data})
                     return {
                         "intent": "form_fill",
                         "command": command,
                         "result": mcp_result,
-                        "fields": form_fields
+                        "fields": extraction
                     }
                 else:
                     logger.error("MCP client not available for form filling.")
@@ -88,9 +100,8 @@ class AgentOrchestrator:
                             "status": "error",
                             "message": "MCP client not available for form filling."
                         },
-                        "fields": form_fields
+                        "fields": extraction
                     }
-            # --- End Enhanced Form Automation Integration ---
             
             if intent == "browser":
                 result = await self.browser_agent.execute(command, thread_id=thread_id)

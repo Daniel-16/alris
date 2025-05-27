@@ -117,33 +117,46 @@ class MCPConnector:
         
         @self.mcp.tool()
         async def fill_form(params: Dict[str, Any]) -> Dict[str, Any]:
-            """Fill a form with the provided data"""
+            """Fill a form at a given URL with the provided data"""
             try:
+                url = None
                 form_data = None
                 selectors = None
-                
+                if "url" in params:
+                    url = params["url"]
+                elif "params" in params and isinstance(params["params"], dict) and "url" in params["params"]:
+                    url = params["params"]["url"]
                 if "form_data" in params:
                     form_data = params["form_data"]
                     selectors = params.get("selectors")
                 elif "params" in params and isinstance(params["params"], dict):
                     form_data = params["params"].get("form_data")
                     selectors = params["params"].get("selectors")
-                
+                if not url:
+                    return {
+                        "status": "error",
+                        "message": "url parameter is required"
+                    }
                 if not form_data:
                     return {
                         "status": "error",
                         "message": "form_data parameter is required"
                     }
-                
-                success = await self.browser_service.fill_form(form_data, selectors)
-                if success:
+                nav_success = await self.browser_service.navigate(url)
+                if not nav_success:
+                    return {
+                        "status": "error",
+                        "message": f"Failed to navigate to {url}"
+                    }
+                fill_success = await self.browser_service.fill_form(form_data, selectors)
+                if fill_success:
                     return {
                         "status": "success",
-                        "message": "Successfully filled form"
+                        "message": f"Successfully filled form at {url}"
                     }
                 return {
                     "status": "error",
-                    "message": "Failed to fill form"
+                    "message": f"Failed to fill form at {url}"
                 }
             except Exception as e:
                 logger.error(f"Error in fill_form tool: {str(e)}")
@@ -247,6 +260,32 @@ class MCPConnector:
                 return {
                     "status": "error",
                     "message": f"Error processing calendar event: {str(e)}"
+                }
+        
+        @self.mcp.tool()
+        async def discover_form_fields(params: Dict[str, Any]) -> Dict[str, Any]:
+            """Discover form fields at a given URL and return their names and user-friendly labels."""
+            try:
+                url = None
+                if "url" in params:
+                    url = params["url"]
+                elif "params" in params and isinstance(params["params"], dict) and "url" in params["params"]:
+                    url = params["params"]["url"]
+                if not url:
+                    return {
+                        "status": "error",
+                        "message": "url parameter is required"
+                    }
+                fields = await self.browser_service.discover_form_fields(url)
+                return {
+                    "status": "success",
+                    "fields": fields
+                }
+            except Exception as e:
+                logger.error(f"Error in discover_form_fields tool: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": f"Error in discover_form_fields tool: {str(e)}"
                 }
         
         logger.info("MCP tools registered")
