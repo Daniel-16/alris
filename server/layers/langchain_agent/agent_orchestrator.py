@@ -5,6 +5,7 @@ from .browser_agent import BrowserAgent
 from .calendar_handler import handle_calendar_intent
 from .youtube_handler import detect_youtube_url, is_youtube_search_command, extract_youtube_search_query, create_youtube_direct_url_response
 from .intent_detector import IntentDetector
+from .form_extraction_tool import extract_form_fields
 
 logger = logging.getLogger("langchain_agent.orchestrator")
 
@@ -52,8 +53,53 @@ class AgentOrchestrator:
                 return response
             
             intent = self.intent_detector.detect_intent(command)
-            
-            if intent == "browser":
+            if intent == "fill_form":
+                extraction = await extract_form_fields(command)
+                url = extraction.get("url")
+                form_data = extraction.get("form_data") or {}
+                needs_clarification = extraction.get("needs_clarification")
+                if not url:
+                    logger.info("Form extraction missing URL. Prompting user for clarification.")
+                    return {
+                        "intent": "fill_form",
+                        "command": command,
+                        "result": {
+                            "status": "clarification_needed",
+                            "message": "The form URL is required but was not found in your command. Please provide the URL of the form you want to fill.",
+                            "fields": extraction
+                        }
+                    }
+                if needs_clarification:
+                    logger.info(f"Form extraction needs clarification: {needs_clarification}")
+                    return {
+                        "intent": "fill_form",
+                        "command": command,
+                        "result": {
+                            "status": "clarification_needed",
+                            "message": needs_clarification,
+                            "fields": extraction
+                        }
+                    }
+                if self.mcp_client:
+                    mcp_result = await self.mcp_client.call_tool("fill_form", {"params": {"url": url, "form_data": form_data}})
+                    return {
+                        "intent": "fill_form",
+                        "command": command,
+                        "result": mcp_result,
+                        "fields": form_data
+                    }
+                else:
+                    logger.error("MCP client not available for form filling.")
+                    return {
+                        "intent": "fill_form",
+                        "command": command,
+                        "result": {
+                            "status": "error",
+                            "message": "MCP client not available for form filling."
+                        },
+                        "fields": extraction
+                    }
+            elif intent == "browser":
                 result = await self.browser_agent.execute(command, thread_id=thread_id)
             elif intent == "calendar":
                 result = await self._handle_calendar_intent(command)

@@ -50,3 +50,6 @@ Alris Architecture Summary and Role-Play.markdown
 
 # Supabase message sql
 create_message_limits.sql
+
+# Email feature
+email-feature.md
