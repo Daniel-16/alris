@@ -120,32 +120,55 @@ class MCPConnector:
             """Fill a form at a given URL with the provided data"""
             try:
                 url = None
-                form_data = None
-                if "url" in params:
-                    url = params["url"]
-                elif "params" in params and isinstance(params["params"], dict) and "url" in params["params"]:
-                    url = params["params"]["url"]
-                if "form_data" in params:
-                    form_data = params["form_data"]
-                elif "params" in params and isinstance(params["params"], dict):
-                    form_data = params["params"].get("form_data")
+                form_data = {}
+                selectors = None
+                
+                if isinstance(params, dict):
+                    if "url" in params:
+                        url = params["url"]
+                        form_data = params.get("form_data", {})
+                        selectors = params.get("selectors")
+                    elif "params" in params and isinstance(params["params"], dict):
+                        params = params["params"]
+                        url = params.get("url")
+                        form_data = params.get("form_data", {})
+                        selectors = params.get("selectors")
+                
                 if not url:
                     return {
                         "status": "error",
-                        "message": "url parameter is required"
+                        "message": "URL parameter is required"
                     }
+                
                 if not form_data:
-                    return {
-                        "status": "error",
-                        "message": "form_data parameter is required. Please specify at least one field to fill."
-                    }
+                    nav_success = await self.browser_service.navigate(url)
+                    if not nav_success:
+                        return {
+                            "status": "error",
+                            "message": f"Failed to navigate to {url}"
+                        }
+                    
+                    fields = await self.browser_service.discover_form_fields(url)
+                    if fields:
+                        return {
+                            "status": "info",
+                            "message": "Please provide values for these form fields",
+                            "discovered_fields": fields
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": "No form fields found on the page"
+                        }
+                
                 nav_success = await self.browser_service.navigate(url)
                 if not nav_success:
                     return {
                         "status": "error",
                         "message": f"Failed to navigate to {url}"
                     }
-                fill_success = await self.browser_service.fill_form(form_data, None)
+                    
+                fill_success = await self.browser_service.fill_form(form_data, selectors)
                 if fill_success:
                     return {
                         "status": "success",

@@ -172,11 +172,7 @@ class BrowserAgent(BaseReactAgent):
                     "status": "error",
                     "message": "No URL provided. Please specify the form URL."
                 }
-            if not form_data:
-                return {
-                    "status": "error",
-                    "message": "No form data provided. Please specify at least one field to fill."
-                }
+            
             await self.browser_service.initialize()
             nav_success = await self.browser_service.navigate(url)
             if not nav_success:
@@ -184,6 +180,21 @@ class BrowserAgent(BaseReactAgent):
                     "status": "error",
                     "message": f"Failed to navigate to {url}."
                 }
+                
+            if not form_data:
+                discovered_fields = await self.browser_service.discover_form_fields(url)
+                if discovered_fields:
+                    return {
+                        "status": "info",
+                        "message": "Please provide values for these form fields",
+                        "discovered_fields": discovered_fields
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": "No form fields found on the page"
+                    }
+                    
             fill_success = await self.browser_service.fill_form(form_data, selectors)
             if not fill_success:
                 discovered_fields = await self.browser_service.discover_form_fields(url)

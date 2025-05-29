@@ -15,7 +15,7 @@ class BrowserService:
         if self._playwright is None:
             logger.info("Initializing Playwright browser service")
             self._playwright = await async_playwright().start()
-            self._browser = await self._playwright.chromium.launch(headless=True)
+            self._browser = await self._playwright.chromium.launch(headless=False)
             self._context = await self._browser.new_context()
             self._page = await self._context.new_page()
             logger.info("Browser service initialized")
@@ -145,32 +145,61 @@ class BrowserService:
         logger.info("Browser service closed")
     
     async def discover_form_fields(self, url: str):
-        """Navigate to the URL, scrape the first form, and return a list of field names and user-friendly labels."""
+        """Navigate to the URL and discover form fields, handling both traditional and modern dynamic forms."""
         await self.initialize()
         try:
             page = self._page
             await page.goto(url)
+            await page.wait_for_load_state('networkidle')
+            await page.wait_for_timeout(2000)
+            
             form = await page.query_selector('form')
-            if not form:
-                logger.error("No form found on the page.")
-                return []
-            input_elements = await form.query_selector_all('input, select, textarea')
+            if form:
+                input_elements = await form.query_selector_all('input, select, textarea')
+            else:
+                input_elements = await page.query_selector_all('input, select, textarea, [role="textbox"], [contenteditable="true"], [data-qa*="input"], [data-qa*="field"]')
             fields = []
             for element in input_elements:
                 name = await element.get_attribute('name')
                 el_id = await element.get_attribute('id')
                 placeholder = await element.get_attribute('placeholder')
+                el_type = await element.get_attribute('type')
+                
+                # Form doesn't fucking load. Huge navigation issue.
+                if not name:
+                    for attr in ['data-qa', 'data-field', 'aria-label']:
+                        val = await element.get_attribute(attr)
+                        if val:
+                            name = val
+                            break
+                
+                if not el_type:
+                    role = await element.get_attribute('role')
+                    if role in ['textbox', 'combobox', 'radio', 'checkbox']:
+                        el_type = role
                 label_text = None
+                
                 if el_id:
                     label = await page.query_selector(f'label[for="{el_id}"]')
                     if label:
                         label_text = (await label.inner_text()).strip()
+                
+                if not label_text:
+                    parent_label = await element.evaluate_handle('(el) => el.closest("label")')
+                    if parent_label:
+                        try:
+                            label_text = await parent_label.evaluate('(el) => el.textContent')
+                        except:
+                            pass
+                
                 user_label = label_text or placeholder or name or el_id or "Unknown Field"
                 field_name = name or el_id or placeholder or user_label
-                if field_name:
+                
+                if field_name and el_type != 'submit':
                     fields.append({
-                        "field_name": field_name,
-                        "label": user_label
+                        "field_name": field_name.strip(),
+                        "label": user_label.strip(),
+                        "type": el_type or "text"
                     })
             return fields
         except Exception as e:
