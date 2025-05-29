@@ -129,10 +129,10 @@ async def extract_form_fields(user_command: str) -> dict:
             if not result.get("url") and extracted_url:
                 result["url"] = extracted_url
                 
-            if result.get("url") and result.get("form_data"):
-                form_service = SimpleFormService()
-                form_result = await form_service.fill_form(result["url"], result["form_data"])
-                result.update(form_result)
+            # if result.get("url") and result.get("form_data"):
+            #     form_service = SimpleFormService()
+            #     form_result = await form_service.fill_form(result["url"], result["form_data"])
+            #     result.update(form_result)
                 
         return result
     except Exception:
