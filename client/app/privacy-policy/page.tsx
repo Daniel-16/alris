@@ -241,7 +241,22 @@ export default function PrivacyPolicy() {
 
             <section>
               <h3 className="text-xl text-white mb-3">
-                7. Changes to This Privacy Policy
+                7. Google Workspace APIs
+              </h3>
+              <p>
+                We expressly confirm and affirm that any data accessed through
+                Google Workspace APIs is not used to develop, improve, or train
+                generalized artificial intelligence (AI) and/or machine learning
+                (ML) models. Our use of Google Workspace APIs is strictly
+                limited to providing specific features and functionalities
+                within our Service, and we maintain this commitment to protect
+                user data and privacy.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-xl text-white mb-3">
+                8. Changes to This Privacy Policy
               </h3>
               <p>
                 We reserve the right to update or change our Privacy Policy at
